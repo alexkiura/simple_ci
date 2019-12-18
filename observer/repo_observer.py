@@ -5,7 +5,10 @@ this commit id
 """
 import argparse
 import helpers
+import os
+import socket
 import subprocess
+import time
 
 
 def poll():
@@ -29,3 +32,27 @@ def poll():
             raise Exception(f"Could not update and check repository. Reason: "
                             f"{e.output}")
 
+        if os.path.isfile("../scripts/.commit_id"):
+            # Check dispatcher's status to confirm that we can send tests
+            try:
+                response = helpers.communicate(dispatcher_host,
+                                               int(dispatcher_port),
+                                               "status")
+            except socket.error as error:
+                raise Exception(f"Could not communicate with dispatcher "
+                                f"server: {error}")
+
+            if response == "OK":
+                # found a dispatcher, let's send a test
+                commit = ""
+                with open("../scripts/.commit_id", "r") as f:
+                    commit = f.readline()
+                response = helpers.communicate(dispatcher_port,
+                                               int(dispatcher_host),
+                                               f"dispatch: {commit}")
+                if response != "OK":
+                    raise Exception(f"Could not dispatch the test: {response}")
+                print("dispatched")
+            else:
+                raise Exception(f"Could not dispatch the test: {response}")
+        time.sleep(5)
