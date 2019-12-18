@@ -26,5 +26,6 @@ def poll():
             # for changes.
             subprocess.check_output(["../scripts/update_repo.sh", args.repo])
         except subprocess.CalledProcessError as e:
-            raise Exception("Could not update and check repository. " +
-                            "Reason: %s" % e.output)
+            raise Exception(f"Could not update and check repository. Reason: "
+                            f"{e.output}")
+
