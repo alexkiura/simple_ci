@@ -1,5 +1,6 @@
 import argparse
 import socketserver
+import threading
 
 
 def serve():
@@ -12,7 +13,22 @@ def serve():
                         help="dispatcher's port (default is 8888)",
                         default=8888,
                         action="store")
-    agrs = parser.parse_args()
+    args = parser.parse_args()
+
+    server = ThreadingTCPServer((args.host, int(args.port)), DispatcherHandler)
+    print(f"Serving on {args.host}:{args.port}")
+    runner_heartbeat = threading.Thread(target=runner_checker, args=(server,))
+    redistributor = threading.Thread(target=redistribute, args=(server,))
+    try:
+        runner_heartbeat.start()
+        redistributor.start()
+        # Activate server to run indefinitely
+        server.serve_forever()
+    except (KeyboardInterrupt, Exception):
+        # kill the thread if any exception occurs
+        server.dead = True
+        runner_heartbeat.join()
+        redistributor.join()
 
 
 class ThreadingTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
